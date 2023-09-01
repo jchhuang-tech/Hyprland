@@ -26,6 +26,7 @@ struct SMasterNodeData {
     Vector2D position;
     Vector2D size;
 
+    float    sizeDelta = 0.f; // size multiplier for resizing children
     float    percSize = 1.f; // size multiplier for resizing children
 
     int      workspaceID = -1;
@@ -79,6 +80,8 @@ class CHyprMasterLayout : public IHyprLayout {
     int                               getMastersOnWorkspace(const int&);
     bool                              prepareLoseFocus(CWindow*);
     void                              prepareNewFocus(CWindow*, bool inherit_fullscreen);
+
+    bool                              resizeReverseDirection = false;
 
     friend struct SMasterNodeData;
     friend struct SMasterWorkspaceData;
