@@ -420,19 +420,20 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
         for (auto& nd : m_lMasterNodesData) {
             if (nd.workspaceID != PWORKSPACE->m_iID || nd.isMaster)
                 continue;
-            wlr_log(WLR_INFO, "1: %f", nd.size.y);
             // if (nd.size.y == 0) {
             //     nd.size.y = WSSIZE.y / STACKWINDOWS;
             // }
             // nd.size.y += WSSIZE.y / STACKWINDOWS;
             // nd.size.y = std::clamp(nd.size.y, WSSIZE.y * 0.05, WSSIZE.y * 0.95);
-            nd.size.y = WSSIZE.y / STACKWINDOWS + nd.sizeDelta;
+            // nd.size.y = WSSIZE.y / STACKWINDOWS + nd.sizeDelta;
 
-            wlr_log(WLR_INFO, "2: %f", nd.size.y);
 
             // float HEIGHT = slavesLeft > 1 ? std::min(heightForEach, heightLeft / slavesLeft) * nd.percSize : heightLeft;
             // float HEIGHT = slavesLeft > 1 ? heightLeft / slavesLeft * nd.percSize : heightLeft;
             float HEIGHT = slavesLeft > 1 ? heightForEach * nd.percSize : heightLeft;
+            if (slavesLeft <= 1) {
+                nd.percSize = heightLeft / heightForEach;
+            }
             // float HEIGHT = slavesLeft > 1 ? nd.size.y : heightLeft;
             // float HEIGHT = heightForEach * nd.percSize;
             // if (slavesLeft == 1) {
@@ -692,6 +693,12 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
 
     // check the up/down resize
     const auto RESIZEDELTA = PWORKSPACEDATA->orientation % 2 == 1 ? pixResize.x : pixResize.y;
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWORKSPACEDATA->workspaceID);
+    const auto MASTERS      = getMastersOnWorkspace(PWORKSPACE->m_iID);
+    const auto WINDOWS      = getNodesOnWorkspace(PWORKSPACE->m_iID);
+    const auto STACKWINDOWS = WINDOWS - MASTERS;
+    const auto WSSIZE       = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
+    const auto WSPOS        = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
 
     if (RESIZEDELTA != 0) {
         if (PNODE->isMaster && getMastersOnWorkspace(PNODE->workspaceID) > 1) {
@@ -708,8 +715,19 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
             const auto SIZE = PWORKSPACEDATA->orientation % 2 == 1 ?
                 (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) / (getNodesOnWorkspace(PNODE->workspaceID) - getMastersOnWorkspace(PNODE->workspaceID)) :
                 (PMONITOR->vecSize.y - PMONITOR->vecReservedTopLeft.y - PMONITOR->vecReservedBottomRight.y) / (getNodesOnWorkspace(PNODE->workspaceID) - getMastersOnWorkspace(PNODE->workspaceID));
-            PNODE->percSize = std::clamp(PNODE->percSize + RESIZEDELTA / SIZE, 0.05, 1.95);
-            PNEXTNODE->percSize = std::clamp(PNEXTNODE->percSize - RESIZEDELTA / SIZE, 0.05, 1.95);
+            if (TOP || NONE) {
+                if (PNODE->size.y - RESIZEDELTA < (PNODE->size.y + PPREVNODE->size.y) * 0.9 &&
+                    PNODE->size.y - RESIZEDELTA > (PNODE->size.y + PPREVNODE->size.y) * 0.1) {
+                    PPREVNODE->percSize = PPREVNODE->percSize + RESIZEDELTA / SIZE;
+                    PNODE->percSize = PNODE->percSize - RESIZEDELTA / SIZE;
+                }
+            } else {
+                if (PNODE->size.y + RESIZEDELTA < (PNODE->size.y + PNEXTNODE->size.y) * 0.9 &&
+                    PNODE->size.y + RESIZEDELTA > (PNODE->size.y + PNEXTNODE->size.y) * 0.1) {
+                    PNODE->percSize = PNODE->percSize + RESIZEDELTA / SIZE;
+                    PNEXTNODE->percSize = PNEXTNODE->percSize - RESIZEDELTA / SIZE;
+                }
+            }
         }
     }
 
