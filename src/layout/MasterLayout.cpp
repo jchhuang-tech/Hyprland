@@ -716,14 +716,14 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
                 (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) / (getNodesOnWorkspace(PNODE->workspaceID) - getMastersOnWorkspace(PNODE->workspaceID)) :
                 (PMONITOR->vecSize.y - PMONITOR->vecReservedTopLeft.y - PMONITOR->vecReservedBottomRight.y) / (getNodesOnWorkspace(PNODE->workspaceID) - getMastersOnWorkspace(PNODE->workspaceID));
             if (TOP || NONE) {
-                if (PNODE->size.y - RESIZEDELTA < (PNODE->size.y + PPREVNODE->size.y) * 0.9 &&
-                    PNODE->size.y - RESIZEDELTA > (PNODE->size.y + PPREVNODE->size.y) * 0.1) {
+                if (PPREVNODE->size.y + RESIZEDELTA > (WSSIZE.y / STACKWINDOWS) * 0.1 &&
+                    PNODE->size.y - RESIZEDELTA > (WSSIZE.y / STACKWINDOWS) * 0.1) {
                     PPREVNODE->percSize = PPREVNODE->percSize + RESIZEDELTA / SIZE;
                     PNODE->percSize = PNODE->percSize - RESIZEDELTA / SIZE;
                 }
             } else {
-                if (PNODE->size.y + RESIZEDELTA < (PNODE->size.y + PNEXTNODE->size.y) * 0.9 &&
-                    PNODE->size.y + RESIZEDELTA > (PNODE->size.y + PNEXTNODE->size.y) * 0.1) {
+                if (PNODE->size.y + RESIZEDELTA > (WSSIZE.y / STACKWINDOWS) * 0.1 &&
+                    PNEXTNODE->size.y - RESIZEDELTA > (WSSIZE.y / STACKWINDOWS) * 0.1) {
                     PNODE->percSize = PNODE->percSize + RESIZEDELTA / SIZE;
                     PNEXTNODE->percSize = PNEXTNODE->percSize - RESIZEDELTA / SIZE;
                 }
