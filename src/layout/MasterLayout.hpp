@@ -81,8 +81,6 @@ class CHyprMasterLayout : public IHyprLayout {
     bool                              prepareLoseFocus(CWindow*);
     void                              prepareNewFocus(CWindow*, bool inherit_fullscreen);
 
-    bool                              resizeReverseDirection = false;
-
     friend struct SMasterNodeData;
     friend struct SMasterWorkspaceData;
 };

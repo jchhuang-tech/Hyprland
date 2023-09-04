@@ -390,80 +390,31 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
     } else if (orientation == ORIENTATION_LEFT || orientation == ORIENTATION_RIGHT) {
         const float WIDTH      = WSSIZE.x - PMASTERNODE->size.x;
         float       heightLeft = WSSIZE.y;
-        // float       nextY      = WSSIZE.y;
         float       nextY      = 0;
-        // float       nextY      = resizeReverseDirection ? WSSIZE.y : 0;
         float       nextX      = 0;
 
         if (orientation == ORIENTATION_LEFT)
             nextX = PMASTERNODE->size.x;
 
-        float heightForEach = heightLeft / slavesLeft;
-        // float heightLeftForRest = 0;
-        // float newHeightForRest = 0;
-        // for (auto& nd : m_lMasterNodesData) {
-        //     if (nd.workspaceID != PWORKSPACE->m_iID || nd.isMaster)
-        //         continue;
-        //     if (nd.percSize != 1) {
-        //         heightLeftForRest = WSSIZE.y - heightForEach * nd.percSize;
-        //     } else {
-        //         newHeightForRest += heightForEach * nd.percSize;
-        //     }
-        // }
-        
-        // auto nodesByCalculationOrder = m_lMasterNodesData;
-        // if (resizeReverseDirection) {
-        //     std::reverse(nodesByCalculationOrder.begin(), nodesByCalculationOrder.end());
-        // }
-
-        // for (auto& nd : nodesByCalculationOrder) {
+        float heightForEach = WSSIZE.y / STACKWINDOWS;
         for (auto& nd : m_lMasterNodesData) {
             if (nd.workspaceID != PWORKSPACE->m_iID || nd.isMaster)
                 continue;
-            // if (nd.size.y == 0) {
-            //     nd.size.y = WSSIZE.y / STACKWINDOWS;
-            // }
-            // nd.size.y += WSSIZE.y / STACKWINDOWS;
-            // nd.size.y = std::clamp(nd.size.y, WSSIZE.y * 0.05, WSSIZE.y * 0.95);
-            // nd.size.y = WSSIZE.y / STACKWINDOWS + nd.sizeDelta;
-
-
-            // float HEIGHT = slavesLeft > 1 ? std::min(heightForEach, heightLeft / slavesLeft) * nd.percSize : heightLeft;
-            // float HEIGHT = slavesLeft > 1 ? heightLeft / slavesLeft * nd.percSize : heightLeft;
             float HEIGHT = slavesLeft > 1 ? heightForEach * nd.percSize : heightLeft;
-            // nd.percSize = heightLeft / heightForEach;
-            if (slavesLeft <= 1) {
-                nd.percSize = heightLeft / heightForEach;
-            }
-            // float HEIGHT = slavesLeft > 1 ? nd.size.y : heightLeft;
-            // float HEIGHT = heightForEach * nd.percSize;
-            // if (slavesLeft == 1) {
-            //     nd.percSize = HEIGHT / heightForEach;
-            // }
-            // wlr_log(WLR_INFO, "%f", nd.percSize);
-            // if (HEIGHT > heightLeft * 0.9f && slavesLeft > 1)
-            //     HEIGHT = heightLeft * 0.9f;
-            // if (HEIGHT > WSSIZE.y * 0.95f && slavesLeft > 1)
-            //     HEIGHT = WSSIZE.y * 0.95f;
-            // if (HEIGHT < WSSIZE.y * 0.05f && slavesLeft > 1)
-            //     HEIGHT = WSSIZE.y * 0.05f;
-
-            // if (resizeReverseDirection) {
-            //     nextY -= HEIGHT;
-            // }
-
+            if (HEIGHT > heightLeft * 0.9f && slavesLeft > 1)
+                HEIGHT = heightLeft * 0.9f;
+            nd.percSize = HEIGHT / heightForEach;
             wlr_log(WLR_INFO, "h: %f", HEIGHT);
+            wlr_log(WLR_INFO, "size: %f", nd.size.y);
+            wlr_log(WLR_INFO, "percsize: %f", nd.percSize);
             nd.size = Vector2D(WIDTH, HEIGHT);
-            // wlr_log(WLR_INFO, "3: %f", nd.size.y);
             nd.position = WSPOS + Vector2D(nextX, nextY);
             applyNodeDataToWindow(&nd);
 
             slavesLeft--;
             heightLeft -= HEIGHT;
 
-            // if (!resizeReverseDirection) {
-                nextY += HEIGHT;
-            // }
+            nextY += HEIGHT;
         }
         wlr_log(WLR_INFO, "---");
     } else { // slaves for centered master window(s)
@@ -720,52 +671,43 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
             const auto SIZE = PWORKSPACEDATA->orientation % 2 == 1 ?
                 (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) / (getNodesOnWorkspace(PNODE->workspaceID) - getMastersOnWorkspace(PNODE->workspaceID)) :
                 (PMONITOR->vecSize.y - PMONITOR->vecReservedTopLeft.y - PMONITOR->vecReservedBottomRight.y) / (getNodesOnWorkspace(PNODE->workspaceID) - getMastersOnWorkspace(PNODE->workspaceID));
+
+            double minHeight = WSSIZE.y * 0.05;
+            const auto NODEIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
             if (TOP) {
-                // PNODE->percSize = PNODE->percSize - RESIZEDELTA / SIZE;
-                std::list<SMasterNodeData>::iterator nodeIter = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
-                int slavesAfter = 0;
-                double heightAfter = 0;
-                for (auto it = std::prev(nodeIter); !(*it).isMaster && it != m_lMasterNodesData.begin(); --it) {
-                    heightAfter += (*it).size.y;
-                    slavesAfter++;
+                int slavesBefore = 0;
+                double heightBefore = 0;
+                for (auto it = std::prev(NODEIT); !it->isMaster && it != m_lMasterNodesData.begin(); --it) {
+                    heightBefore += it->size.y;
+                    slavesBefore++;
                 }
-                double minHeight = WSSIZE.y * 0.05;
-                // above are the same as bottom
-                if (PNODE->size.y - RESIZEDELTA < PNODE->size.y + heightAfter - slavesAfter * minHeight &&
-                        PNODE->size.y - RESIZEDELTA > minHeight) {
+                if (PNODE->size.y - RESIZEDELTA < PNODE->size.y + heightBefore - slavesBefore * minHeight &&
+                    PNODE->size.y - RESIZEDELTA > minHeight) {
                     PNODE->percSize = PNODE->percSize - RESIZEDELTA / SIZE;
-                    wlr_log(WLR_INFO, "nodesAfter: %d", slavesAfter);
-                    for (auto it = std::prev(nodeIter); !(*it).isMaster && it != m_lMasterNodesData.begin(); --it) {
-                        float resizeDeltaForEach = RESIZEDELTA * ((*it).size.y - minHeight ) / (heightAfter - minHeight * slavesAfter);
-                        (*it).percSize = (*it).percSize + resizeDeltaForEach / SIZE;
+                    wlr_log(WLR_INFO, "nodesAfter: %d", slavesBefore);
+                    for (auto it = std::prev(NODEIT); !it->isMaster && it != m_lMasterNodesData.begin(); --it) {
+                        float resizeDeltaForEach = RESIZEDELTA * (it->size.y - minHeight ) / (heightBefore - minHeight * slavesBefore);
+                        it->percSize = it->percSize + resizeDeltaForEach / SIZE;
                     }
                 }
             } else {
-                std::list<SMasterNodeData>::iterator nodeIter = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
                 int slavesAfter = 0;
                 double heightAfter = 0;
-                for (auto it = std::next(nodeIter); it != m_lMasterNodesData.end(); ++it) {
-                    heightAfter += (*it).size.y;
+                for (auto it = std::next(NODEIT); it != m_lMasterNodesData.end(); ++it) {
+                    heightAfter += it->size.y;
                     slavesAfter++;
                 }
-                double minHeight = WSSIZE.y * 0.05;
                 if (PNODE->size.y + RESIZEDELTA < PNODE->size.y + heightAfter - slavesAfter * minHeight &&
                     PNODE->size.y + RESIZEDELTA > minHeight) {
                     PNODE->percSize = PNODE->percSize + RESIZEDELTA / SIZE;
                     wlr_log(WLR_INFO, "nodesAfter: %d", slavesAfter);
-                    for (auto it = std::next(nodeIter); it != m_lMasterNodesData.end(); ++it) {
-                        float resizeDeltaForEach = RESIZEDELTA * ((*it).size.y - minHeight ) / (heightAfter - minHeight * slavesAfter);
-                        (*it).percSize = (*it).percSize - resizeDeltaForEach / SIZE;
+                    for (auto it = std::next(NODEIT); it != m_lMasterNodesData.end(); ++it) {
+                        float resizeDeltaForEach = RESIZEDELTA * (it->size.y - minHeight ) / (heightAfter - minHeight * slavesAfter);
+                        it->percSize = it->percSize - resizeDeltaForEach / SIZE;
                     }
                 }
             }
         }
-    }
-
-    if (TOP) {
-        resizeReverseDirection = true;
-    } else {
-        resizeReverseDirection = false;
     }
 
     recalculateMonitor(PMONITOR->ID);
