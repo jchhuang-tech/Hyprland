@@ -397,15 +397,22 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
             nextX = PMASTERNODE->size.x;
 
         float heightForEach = WSSIZE.y / STACKWINDOWS;
+        float newTotalHeight = 0;
         for (auto& nd : m_lMasterNodesData) {
             if (nd.workspaceID != PWORKSPACE->m_iID || nd.isMaster)
                 continue;
+            newTotalHeight += heightForEach * nd.percSize;
+        }
+        for (auto& nd : m_lMasterNodesData) {
+            if (nd.workspaceID != PWORKSPACE->m_iID || nd.isMaster)
+                continue;
+            nd.percSize *= WSSIZE.y / newTotalHeight;
             float HEIGHT = slavesLeft > 1 ? heightForEach * nd.percSize : heightLeft;
+            // float HEIGHT = heightForEach * nd.percSize;
             if (HEIGHT > heightLeft * 0.9f && slavesLeft > 1)
                 HEIGHT = heightLeft * 0.9f;
             nd.percSize = HEIGHT / heightForEach;
             wlr_log(WLR_INFO, "h: %f", HEIGHT);
-            wlr_log(WLR_INFO, "size: %f", nd.size.y);
             wlr_log(WLR_INFO, "percsize: %f", nd.percSize);
             nd.size = Vector2D(WIDTH, HEIGHT);
             nd.position = WSPOS + Vector2D(nextX, nextY);
@@ -415,6 +422,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
             heightLeft -= HEIGHT;
 
             nextY += HEIGHT;
+            wlr_log(WLR_INFO, "-");
         }
         wlr_log(WLR_INFO, "---");
     } else { // slaves for centered master window(s)
