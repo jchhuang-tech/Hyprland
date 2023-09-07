@@ -641,10 +641,6 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
         return;
 
     const auto PNODE = getNodeFromWindow(PWINDOW);
-    const auto PPREVWINDOW = getNextWindow(PWINDOW, false);
-    const auto PPREVNODE = getNodeFromWindow(PPREVWINDOW);
-    const auto PNEXTWINDOW = getNextWindow(PWINDOW, true);
-    const auto PNEXTNODE = getNodeFromWindow(PNEXTWINDOW);
 
     if (!PNODE) {
         PWINDOW->m_vRealSize = Vector2D(std::max((PWINDOW->m_vRealSize.goalv() + pixResize).x, 20.0), std::max((PWINDOW->m_vRealSize.goalv() + pixResize).y, 20.0));
@@ -658,8 +654,8 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
 
     const bool DISPLAYBOTTOM = STICKS(PWINDOW->m_vPosition.y + PWINDOW->m_vSize.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y);
     const bool DISPLAYRIGHT  = STICKS(PWINDOW->m_vPosition.x + PWINDOW->m_vSize.x, PMONITOR->vecPosition.x + PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x);
-    const bool DISPLAYLEFT   = STICKS(PWINDOW->m_vPosition.x, PMONITOR->vecPosition.x + PMONITOR->vecReservedTopLeft.x);
-    const bool DISPLAYTOP    = STICKS(PWINDOW->m_vPosition.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
+    // const bool DISPLAYLEFT   = STICKS(PWINDOW->m_vPosition.x, PMONITOR->vecPosition.x + PMONITOR->vecReservedTopLeft.x);
+    // const bool DISPLAYTOP    = STICKS(PWINDOW->m_vPosition.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
 
     // if (true) {
         const auto         LEFT   = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT || DISPLAYRIGHT;
@@ -668,7 +664,6 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
         // const auto         RIGHT  = corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT || DISPLAYLEFT;
         // const auto         BOTTOM = corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT || DISPLAYTOP;
         // const auto         BOTTOM = corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT;
-        const auto         NONE   = corner == CORNER_NONE;
         // const auto         NONE   = corner == CORNER_NONE;
     // }
 
@@ -703,32 +698,29 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     const auto WINDOWS      = getNodesOnWorkspace(PNODE->workspaceID);
     const auto STACKWINDOWS = WINDOWS - MASTERS;
     const auto WSSIZE       = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
-    const auto WSPOS        = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
+
     const auto nodesToResize = PNODE->isMaster ? MASTERS : STACKWINDOWS;
 
     if (RESIZEDELTA != 0 && nodesToResize > 1) {
-        float minHeight;
-        float SIZE;
         int nodesLeft = 0;
-        float heightLeft = 0;
-        int nodeCount = 0;
+        float sizeLeft = 0;
         const auto NODEIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
         const auto REVNODEIT = std::find(m_lMasterNodesData.rbegin(), m_lMasterNodesData.rend(), *PNODE);
-        float totalSize = PWORKSPACEDATA->orientation % 2 == 1 ? WSSIZE.x : WSSIZE.y;
-
-        SIZE = PWORKSPACEDATA->orientation % 2 == 1 ?
+        float SIZE = PWORKSPACEDATA->orientation % 2 == 1 ?
             (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) / nodesToResize:
             (PMONITOR->vecSize.y - PMONITOR->vecReservedTopLeft.y - PMONITOR->vecReservedBottomRight.y) / nodesToResize;
-        minHeight = totalSize / nodesToResize * 0.2;
 
-        auto checkSlavesLeft = [&heightLeft, &nodesLeft, PWORKSPACEDATA, &nodeCount, PNODE](auto it) {
-            if (it.isMaster != PNODE->isMaster) {
+        float totalSize = PWORKSPACEDATA->orientation % 2 == 1 ? WSSIZE.x : WSSIZE.y;
+        float minHeight = totalSize / nodesToResize * 0.2;
+
+        int nodeCount = 0;
+        auto checkSlavesLeft = [&sizeLeft, &nodesLeft, PWORKSPACEDATA, &nodeCount, PNODE](auto it) {
+            if (it.isMaster != PNODE->isMaster)
                 return;
-            }
             nodeCount++;
             if (!it.isMaster && PWORKSPACEDATA->orientation == 4 && nodeCount % 2 == 1)
                 return;
-            heightLeft += PWORKSPACEDATA->orientation % 2 == 1 ? it.size.x : it.size.y;
+            sizeLeft += PWORKSPACEDATA->orientation % 2 == 1 ? it.size.x : it.size.y;
             nodesLeft++;
         };
         float resizeDiff;
@@ -740,7 +732,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
             resizeDiff = RESIZEDELTA;
         }
         float nodeSize = PWORKSPACEDATA->orientation % 2 == 1 ? PNODE->size.x : PNODE->size.y;
-        float roomForSizeIncrease = heightLeft - nodesLeft * minHeight;
+        float roomForSizeIncrease = sizeLeft - nodesLeft * minHeight;
         float roomForSizeDecrease = minHeight - nodeSize;
         resizeDiff = std::clamp(resizeDiff, roomForSizeDecrease, roomForSizeIncrease);
         PNODE->percSize = PNODE->percSize + resizeDiff / SIZE;
