@@ -710,12 +710,12 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     if (RESIZEDELTA != 0) {
         float minHeight;
         float SIZE;
-        float resizeDiff;
         int slavesLeft = 0;
         float heightLeft = 0;
         int slaveCount = 0;
         const auto NODEIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
         const auto REVNODEIT = std::find(m_lMasterNodesData.rbegin(), m_lMasterNodesData.rend(), *PNODE);
+        float totalSize = PWORKSPACEDATA->orientation % 2 == 1 ? WSSIZE.x : WSSIZE.y;
 
         if (PNODE->isMaster && getMastersOnWorkspace(PNODE->workspaceID) > 1) {
             // check master size
@@ -723,30 +723,15 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
                 (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) / getMastersOnWorkspace(PNODE->workspaceID) :
                 (PMONITOR->vecSize.y - PMONITOR->vecReservedTopLeft.y - PMONITOR->vecReservedBottomRight.y) / getMastersOnWorkspace(PNODE->workspaceID);
 
-            float totalSize = PWORKSPACEDATA->orientation % 2 == 1 ? WSSIZE.x : WSSIZE.y;
             minHeight = totalSize / MASTERS * 0.2;
         } else if (!PNODE->isMaster && (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) - getMastersOnWorkspace(PNODE->workspaceID)) > 1) {
             SIZE = PWORKSPACEDATA->orientation % 2 == 1 ?
                 (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) / (getNodesOnWorkspace(PNODE->workspaceID) - getMastersOnWorkspace(PNODE->workspaceID)) :
                 (PMONITOR->vecSize.y - PMONITOR->vecReservedTopLeft.y - PMONITOR->vecReservedBottomRight.y) / (getNodesOnWorkspace(PNODE->workspaceID) - getMastersOnWorkspace(PNODE->workspaceID));
 
-            float totalSize = PWORKSPACEDATA->orientation % 2 == 1 ? WSSIZE.x : WSSIZE.y;
             minHeight = totalSize / STACKWINDOWS * 0.2;
         }
 
-        // const auto SIZE = PWORKSPACEDATA->orientation % 2 == 1 ?
-        //     (PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x) / (getNodesOnWorkspace(PNODE->workspaceID) - getMastersOnWorkspace(PNODE->workspaceID)) :
-        //     (PMONITOR->vecSize.y - PMONITOR->vecReservedTopLeft.y - PMONITOR->vecReservedBottomRight.y) / (getNodesOnWorkspace(PNODE->workspaceID) - getMastersOnWorkspace(PNODE->workspaceID));
-        //
-        // float totalSize = PWORKSPACEDATA->orientation % 2 == 1 ? WSSIZE.x : WSSIZE.y;
-        // float minHeight = totalSize / STACKWINDOWS * 0.2;
-
-        // const auto NODEIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
-        // const auto REVNODEIT = std::find(m_lMasterNodesData.rbegin(), m_lMasterNodesData.rend(), *PNODE);
-        //
-        // int slavesLeft = 0;
-        // float heightLeft = 0;
-        // int slaveCount = 0;
         auto checkSlavesLeft = [&heightLeft, &slavesLeft, PWORKSPACEDATA, &slaveCount, PNODE](auto it) {
             if (it.isMaster != PNODE->isMaster) {
                 return;
@@ -757,7 +742,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
             heightLeft += PWORKSPACEDATA->orientation % 2 == 1 ? it.size.x : it.size.y;
             slavesLeft++;
         };
-        // float resizeDiff;
+        float resizeDiff;
         if ((PWORKSPACEDATA->orientation % 2 == 0 && TOP) || (PWORKSPACEDATA->orientation % 2 == 1 && LEFT)) {
             std::for_each(std::next(REVNODEIT), m_lMasterNodesData.rend(), checkSlavesLeft);
             resizeDiff = -RESIZEDELTA;
