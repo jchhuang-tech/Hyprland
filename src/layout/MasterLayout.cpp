@@ -747,9 +747,11 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
                         continue;
                     if (heightBefore - minHeight * mastersBefore != 0) {
                         wlr_log(WLR_INFO, "node getting resized: %d", std::distance(m_lMasterNodesData.rbegin(), it));
-                        float size = PWORKSPACEDATA->orientation % 2 == 1 ? it->size.x : it->size.y;
-                        float resizeDeltaForEach = resizeDiff * (size - minHeight ) / (heightBefore - minHeight * mastersBefore);
-                        it->percSize = it->percSize + resizeDeltaForEach / SIZE;
+                        if (roomForSizeIncrease != 0) {
+                            float size = PWORKSPACEDATA->orientation % 2 == 1 ? it->size.x : it->size.y;
+                            float resizeDeltaForEach = resizeDiff * (size - minHeight ) / -roomForSizeIncrease;
+                            it->percSize = it->percSize + resizeDeltaForEach / SIZE;
+                        }
                     }
                 }
             } else {
@@ -831,9 +833,11 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
                         it++;
                         continue;
                     }
-                    float size = PWORKSPACEDATA->orientation % 2 == 1 ? it->size.x : it->size.y;
-                    float resizeDeltaForEach = resizeDiff * (size - minHeight ) / (heightBefore - minHeight * slavesBefore);
-                    it->percSize = it->percSize + resizeDeltaForEach / SIZE;
+                    if (roomForSizeIncrease != 0) {
+                        float size = PWORKSPACEDATA->orientation % 2 == 1 ? it->size.x : it->size.y;
+                        float resizeDeltaForEach = resizeDiff * (size - minHeight ) / -roomForSizeIncrease;
+                        it->percSize = it->percSize + resizeDeltaForEach / SIZE;
+                    }
                     if (PWORKSPACEDATA->orientation == 4) {
                         it++;
                         if (it == m_lMasterNodesData.rend())
