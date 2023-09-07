@@ -719,38 +719,32 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
             float minHeight = totalSize / MASTERS * 0.2;
             const auto NODEIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
             const auto REVNODEIT = std::find(m_lMasterNodesData.rbegin(), m_lMasterNodesData.rend(), *PNODE);
-            wlr_log(WLR_INFO, "PNODE: %d", std::distance(m_lMasterNodesData.begin(), NODEIT));
-            wlr_log(WLR_INFO, "PNODE is master?: %d", NODEIT->isMaster);
-            wlr_log(WLR_INFO, "PNODE is begin?: %d", NODEIT == m_lMasterNodesData.begin());
 
             if ((PWORKSPACEDATA->orientation % 2 == 0 && TOP) || (PWORKSPACEDATA->orientation % 2 == 1 && LEFT)) {
                 int mastersBefore = 0;
                 float heightBefore = 0;
                 for (auto it = std::next(REVNODEIT); it != m_lMasterNodesData.rend(); ++it) {
                     if (!it->isMaster) {
-                        wlr_log(WLR_INFO, "node not getting counted: %d", std::distance(m_lMasterNodesData.rbegin(), it));
                         continue;
                     }
-                    wlr_log(WLR_INFO, "node getting counted: %d", std::distance(m_lMasterNodesData.rbegin(), it));
                     heightBefore += PWORKSPACEDATA->orientation % 2 == 1 ? it->size.x : it->size.y;
                     mastersBefore++;
                 }
                 float nodeSize = PWORKSPACEDATA->orientation % 2 == 1 ? PNODE->size.x : PNODE->size.y;
-                float resizeDiff = RESIZEDELTA;
-                float roomForSizeIncrease = - (heightBefore - mastersBefore * minHeight);
-                float roomForSizeDecrease = - (minHeight - nodeSize);
-                resizeDiff = std::clamp(resizeDiff, roomForSizeIncrease, roomForSizeDecrease);
+                float resizeDiff = -RESIZEDELTA;
+                float roomForSizeIncrease = heightBefore - mastersBefore * minHeight;
+                float roomForSizeDecrease = minHeight - nodeSize;
+                resizeDiff = std::clamp(resizeDiff, roomForSizeDecrease, roomForSizeIncrease);
 
-                PNODE->percSize = PNODE->percSize - resizeDiff / SIZE;
+                PNODE->percSize = PNODE->percSize + resizeDiff / SIZE;
                 for (auto it = std::next(REVNODEIT); it != m_lMasterNodesData.rend(); ++it) {
                     if (!it->isMaster)
                         continue;
-                    if (heightBefore - minHeight * mastersBefore != 0) {
-                        wlr_log(WLR_INFO, "node getting resized: %d", std::distance(m_lMasterNodesData.rbegin(), it));
+                    if (roomForSizeIncrease != 0) {
                         if (roomForSizeIncrease != 0) {
                             float size = PWORKSPACEDATA->orientation % 2 == 1 ? it->size.x : it->size.y;
-                            float resizeDeltaForEach = resizeDiff * (size - minHeight ) / -roomForSizeIncrease;
-                            it->percSize = it->percSize + resizeDeltaForEach / SIZE;
+                            float resizeDeltaForEach = resizeDiff * (size - minHeight) / roomForSizeIncrease;
+                            it->percSize = it->percSize - resizeDeltaForEach / SIZE;
                         }
                     }
                 }
@@ -776,7 +770,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
                         continue;
                     if (roomForSizeIncrease != 0) {
                         float size = PWORKSPACEDATA->orientation % 2 == 1 ? it->size.x : it->size.y;
-                        float resizeDeltaForEach = resizeDiff * (size - minHeight ) / roomForSizeIncrease;
+                        float resizeDeltaForEach = resizeDiff * (size - minHeight) / roomForSizeIncrease;
                         it->percSize = it->percSize - resizeDeltaForEach / SIZE;
                     }
                 }
@@ -787,12 +781,9 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
                 (PMONITOR->vecSize.y - PMONITOR->vecReservedTopLeft.y - PMONITOR->vecReservedBottomRight.y) / (getNodesOnWorkspace(PNODE->workspaceID) - getMastersOnWorkspace(PNODE->workspaceID));
 
             float totalSize = PWORKSPACEDATA->orientation % 2 == 1 ? WSSIZE.x : WSSIZE.y;
-            // double minHeight = WSSIZE.y * 0.05;
             float minHeight = totalSize / STACKWINDOWS * 0.2;
-            // float minHeight = std::min(WSSIZE.y / STACKWINDOWS * 0.2, 5.0);
             const auto NODEIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
             const auto REVNODEIT = std::find(m_lMasterNodesData.rbegin(), m_lMasterNodesData.rend(), *PNODE);
-            wlr_log(WLR_INFO, "PNODE: %d", std::distance(m_lMasterNodesData.begin(), NODEIT));
             if ((PWORKSPACEDATA->orientation % 2 == 0 && TOP) || (PWORKSPACEDATA->orientation % 2 == 1 && LEFT)) {
                 int slavesBefore = 0;
                 float heightBefore = 0;
@@ -819,12 +810,12 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
                 //     slavesBefore++;
                 // }
                 float nodeSize = PWORKSPACEDATA->orientation % 2 == 1 ? PNODE->size.x : PNODE->size.y;
-                float resizeDiff = RESIZEDELTA;
-                float roomForSizeIncrease = - (heightBefore - slavesBefore * minHeight);
-                float roomForSizeDecrease = - (minHeight - nodeSize);
-                resizeDiff = std::clamp(resizeDiff, roomForSizeIncrease, roomForSizeDecrease);
+                float resizeDiff = -RESIZEDELTA;
+                float roomForSizeIncrease = heightBefore - slavesBefore * minHeight;
+                float roomForSizeDecrease = minHeight - nodeSize;
+                resizeDiff = std::clamp(resizeDiff, roomForSizeDecrease, roomForSizeIncrease);
 
-                PNODE->percSize = PNODE->percSize - resizeDiff / SIZE;
+                PNODE->percSize = PNODE->percSize + resizeDiff / SIZE;
                 it = std::next(REVNODEIT, step);
                 while (it != m_lMasterNodesData.rend()) {
                     // if (it->isMaster || it == m_lMasterNodesData.begin())
@@ -835,8 +826,8 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
                     }
                     if (roomForSizeIncrease != 0) {
                         float size = PWORKSPACEDATA->orientation % 2 == 1 ? it->size.x : it->size.y;
-                        float resizeDeltaForEach = resizeDiff * (size - minHeight ) / -roomForSizeIncrease;
-                        it->percSize = it->percSize + resizeDeltaForEach / SIZE;
+                        float resizeDeltaForEach = resizeDiff * (size - minHeight ) / roomForSizeIncrease;
+                        it->percSize = it->percSize - resizeDeltaForEach / SIZE;
                     }
                     if (PWORKSPACEDATA->orientation == 4) {
                         it++;
