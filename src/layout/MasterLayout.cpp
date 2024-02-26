@@ -127,10 +127,25 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
     static auto  PDROPATCURSOR = CConfigValue<Hyprlang::INT>("master:drop_at_cursor");
     eOrientation orientation   = getDynamicOrientation(pWindow->m_pWorkspace);
     const auto   NODEIT        = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
+    static auto  PNEWATTACH    = CConfigValue<Hyprlang::INT>("master:new_attach");
 
-    bool         forceDropAsMaster = false;
+    if (*PNEWATTACH != 0 && !g_pInputManager->m_bWasDraggingWindow) {
+        for (auto it = m_lMasterNodesData.begin(); it != m_lMasterNodesData.end(); ++it) {
+            if (it->workspaceID != pWindow->workspaceID() || it->isMaster)
+                continue;
+            if (g_pCompositor->m_pLastWindow == it->pWindow) {
+                if (*PNEWATTACH == 1) { // if attach below
+                    ++it;
+                }
+                m_lMasterNodesData.splice(it, m_lMasterNodesData, NODEIT);
+                break;
+            }
+        }
+    }
+
+    bool forceDropAsMaster = false;
     // if dragging window to move, drop it at the cursor position instead of bottom/top of stack
-    if (*PDROPATCURSOR && g_pInputManager->dragMode == MBIND_MOVE) {
+    if (*PDROPATCURSOR && g_pInputManager->m_bWasDraggingWindow) {
         if (WINDOWSONWORKSPACE > 2) {
             for (auto it = m_lMasterNodesData.begin(); it != m_lMasterNodesData.end(); ++it) {
                 if (it->workspaceID != pWindow->workspaceID())
@@ -186,7 +201,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
         }
     }
 
-    if ((*PNEWISMASTER && g_pInputManager->dragMode != MBIND_MOVE) || WINDOWSONWORKSPACE == 1 || (WINDOWSONWORKSPACE > 2 && !pWindow->m_bFirstMap && OPENINGON->isMaster) ||
+    if ((*PNEWISMASTER && !g_pInputManager->m_bWasDraggingWindow) || WINDOWSONWORKSPACE == 1 || (WINDOWSONWORKSPACE > 2 && !pWindow->m_bFirstMap && OPENINGON->isMaster) ||
         forceDropAsMaster) {
         for (auto& nd : m_lMasterNodesData) {
             if (nd.isMaster && nd.workspaceID == PNODE->workspaceID) {

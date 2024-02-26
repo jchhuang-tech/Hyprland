@@ -434,6 +434,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("master:allow_small_split", Hyprlang::INT{0});
     m_pConfig->addConfigValue("master:smart_resizing", Hyprlang::INT{1});
     m_pConfig->addConfigValue("master:drop_at_cursor", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("master:new_attach", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("animations:enabled", Hyprlang::INT{1});
     m_pConfig->addConfigValue("animations:first_launch_animation", Hyprlang::INT{1});
