@@ -394,6 +394,9 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
         if (pWorkspace->m_bIsSpecialWorkspace && w->m_iMonitorID != pWorkspace->m_iMonitorID)
             continue; // special on another are rendered as a part of the base pass
 
+        if (w->m_bIsFloating && w->m_iMonitorID != pWorkspace->m_iMonitorID && g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_vRenderOffset.isBeingAnimated())
+            continue; // don't render floating that's partially on another monitor until the animation is over
+
         // render the bad boy
         renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
     }
