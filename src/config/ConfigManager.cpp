@@ -348,6 +348,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:close_special_on_empty", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:background_color", Hyprlang::INT{0xff111111});
     m_pConfig->addConfigValue("misc:new_window_takes_over_fullscreen", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("misc:focus_takes_over_fullscreen", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:enable_hyprcursor", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:hide_cursor_on_key_press", Hyprlang::INT{0});
 

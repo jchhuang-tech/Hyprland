@@ -940,6 +940,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     static auto PFOLLOWMOUSE        = CConfigValue<Hyprlang::INT>("input:follow_mouse");
     static auto PSPECIALFALLTHROUGH = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
+    static auto PTAKESOVERFS        = CConfigValue<Hyprlang::INT>("misc:focus_takes_over_fullscreen");
 
     if (g_pCompositor->m_sSeat.exclusiveClient) {
         Debug::log(LOG, "Disallowing setting focus to a window due to there being an active input inhibitor layer.");
@@ -999,7 +1000,8 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     if (pWindow->m_bPinned)
         pWindow->m_pWorkspace = m_pLastMonitor->activeWorkspace;
 
-    const auto PMONITOR = getMonitorFromID(pWindow->m_iMonitorID);
+    const auto PMONITOR   = getMonitorFromID(pWindow->m_iMonitorID);
+    const auto PWORKSPACE = getWorkspaceByID(pWindow->m_iWorkspaceID);
 
     if (!isWorkspaceVisible(pWindow->workspaceID())) {
         const auto PWORKSPACE = pWindow->m_pWorkspace;
@@ -1013,6 +1015,14 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     const auto PLASTWINDOW = m_pLastWindow;
     m_pLastWindow          = pWindow;
+
+    if (*PTAKESOVERFS && PWORKSPACE->m_bHasFullscreenWindow && !pWindow->m_bIsFullscreen && !pWindow->m_bPinned) {
+        const auto fullscreenMode    = PWORKSPACE->m_efFullscreenMode;
+        const auto pFullscreenWindow = getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+        g_pCompositor->setWindowFullscreen(pFullscreenWindow, false, FULLSCREEN_FULL);
+        if (*PTAKESOVERFS == 1) // new focused window should take over the fullscreen
+            g_pCompositor->setWindowFullscreen(pWindow, true, fullscreenMode);
+    }
 
     /* If special fallthrough is enabled, this behavior will be disabled, as I have no better idea of nicely tracking which
        window focuses are "via keybinds" and which ones aren't. */
