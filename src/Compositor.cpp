@@ -1016,7 +1016,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     const auto PLASTWINDOW = m_pLastWindow;
     m_pLastWindow          = pWindow;
 
-    if (*PTAKESOVERFS && PWORKSPACE->m_bHasFullscreenWindow && !pWindow->m_bIsFullscreen && !pWindow->m_bPinned) {
+    if (*PTAKESOVERFS && PWORKSPACE->m_bHasFullscreenWindow && !pWindow->m_bIsFullscreen && !pWindow->m_bPinned && !pWindow->m_bIsFloating) {
         const auto fullscreenMode    = PWORKSPACE->m_efFullscreenMode;
         const auto pFullscreenWindow = getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
         g_pCompositor->setWindowFullscreen(pFullscreenWindow, false, FULLSCREEN_FULL);
