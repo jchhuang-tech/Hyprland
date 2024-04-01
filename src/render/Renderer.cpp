@@ -1691,6 +1691,16 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, dou
     if (scale != 1.0)
         damageBox.scale(scale);
 
+    if (WLSURF) {
+        const auto PWINDOW = WLSURF->getWindow();
+        if (PWINDOW) {
+            const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
+            if (PWINDOWWORKSPACE)
+                damageBox.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
+            damageBox.translate(PWINDOW->m_vFloatingOffset);
+        }
+    }
+
     // schedule frame events
     if (!wl_list_empty(&pSurface->current.frame_callback_list))
         g_pCompositor->scheduleFrameForMonitor(g_pCompositor->getMonitorFromVector(Vector2D(x, y)));
@@ -1725,7 +1735,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow, bool forceFull) {
 
     CBox       windowBox        = pWindow->getFullWindowBoundingBox();
     const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() && !pWindow->m_bPinned)
+    if (PWINDOWWORKSPACE && !pWindow->m_bPinned)
         windowBox.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
     windowBox.translate(pWindow->m_vFloatingOffset);
 
