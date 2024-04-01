@@ -215,6 +215,14 @@ void CAnimationManager::tick() {
                             continue;
 
                         w->updateWindowDecos();
+
+                        // damage any workspace window that is on any monitor
+                        for (auto& w : g_pCompositor->m_vWindows) {
+                            if (!g_pCompositor->windowValidMapped(w.get()) || w->m_iWorkspaceID != PWORKSPACE->m_iID || w->m_bPinned)
+                                continue;
+
+                            g_pHyprRenderer->damageWindow(w.get());
+                        }
                     }
                 } else if (PLAYER) {
                     if (PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
@@ -224,6 +232,9 @@ void CAnimationManager::tick() {
                     CBox expandBox = WLRBOXPREV;
                     expandBox.expand(5);
                     g_pHyprRenderer->damageBox(&expandBox);
+
+                    CBox layerBox = CBox{PLAYER->realPosition.value(), PLAYER->realSize.value()};
+                    g_pHyprRenderer->damageBox(&layerBox);
                 }
                 break;
             }
