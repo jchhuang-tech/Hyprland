@@ -1001,7 +1001,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         pWindow->m_pWorkspace = m_pLastMonitor->activeWorkspace;
 
     const auto PMONITOR   = getMonitorFromID(pWindow->m_iMonitorID);
-    const auto PWORKSPACE = getWorkspaceByID(pWindow->m_iWorkspaceID);
+    const auto PWORKSPACE = getWorkspaceByID(pWindow->workspaceID());
 
     if (!isWorkspaceVisible(pWindow->workspaceID())) {
         const auto PWORKSPACE = pWindow->m_pWorkspace;
