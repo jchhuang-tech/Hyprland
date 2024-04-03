@@ -1416,22 +1416,24 @@ void CHyprMasterLayout::buildOrientationCycleVectorFromVars(std::vector<eOrienta
 }
 
 eOrientation CHyprMasterLayout::getDynamicOrientation(PHLWORKSPACE pWorkspace) {
+    const auto getOrientationFromString = [&](std::string str) {
+        if (str == "top")
+            return ORIENTATION_TOP;
+        else if (str == "right")
+            return ORIENTATION_RIGHT;
+        else if (str == "bottom")
+            return ORIENTATION_BOTTOM;
+        else if (str == "center")
+            return ORIENTATION_CENTER;
+        else
+            return ORIENTATION_LEFT;
+    };
+
     static auto  PORIENTATION      = CConfigValue<std::string>("master:orientation");
-    eOrientation globalOrientation = ORIENTATION_LEFT;
-    if (*PORIENTATION == "top")
-        globalOrientation = ORIENTATION_TOP;
-    else if (*PORIENTATION == "right")
-        globalOrientation = ORIENTATION_RIGHT;
-    else if (*PORIENTATION == "bottom")
-        globalOrientation = ORIENTATION_BOTTOM;
-    else if (*PORIENTATION == "center")
-        globalOrientation = ORIENTATION_CENTER;
-    else
-        globalOrientation = ORIENTATION_LEFT;
+    eOrientation globalOrientation = getOrientationFromString(*PORIENTATION);
 
-    const auto  WORKSPACERULES = g_pConfigManager->getWorkspaceRulesFor(pWorkspace);
-    std::string wsRuleOrientationString;
-
+    const auto   WORKSPACERULES = g_pConfigManager->getWorkspaceRulesFor(pWorkspace);
+    std::string  wsRuleOrientationString;
     for (auto& wsRule : WORKSPACERULES) {
         if (wsRule.layoutopts.contains("orientation"))
             wsRuleOrientationString = wsRule.layoutopts.at("orientation");
@@ -1439,23 +1441,13 @@ eOrientation CHyprMasterLayout::getDynamicOrientation(PHLWORKSPACE pWorkspace) {
 
     eOrientation wsRuleOrientation = ORIENTATION_UNSET;
     // workspace rule overrides global if it exists
-    if (!wsRuleOrientationString.empty()) {
-        if (wsRuleOrientationString == "top")
-            wsRuleOrientation = ORIENTATION_TOP;
-        else if (wsRuleOrientationString == "right")
-            wsRuleOrientation = ORIENTATION_RIGHT;
-        else if (wsRuleOrientationString == "bottom")
-            wsRuleOrientation = ORIENTATION_BOTTOM;
-        else if (wsRuleOrientationString == "center")
-            wsRuleOrientation = ORIENTATION_CENTER;
-        else if (wsRuleOrientationString == "left")
-            wsRuleOrientation = ORIENTATION_LEFT;
-    }
+    if (!wsRuleOrientationString.empty())
+        wsRuleOrientation = getOrientationFromString(wsRuleOrientationString);
 
     eOrientation wsDataOrientation = getMasterWorkspaceData(pWorkspace->m_iID)->orientation;
 
-    eOrientation realOrientation;
     // priority: global < workspace rule < users manual dispatching
+    eOrientation realOrientation = ORIENTATION_UNSET;
     if (wsDataOrientation != ORIENTATION_UNSET)
         realOrientation = wsDataOrientation;
     else if (wsRuleOrientation != ORIENTATION_UNSET)
