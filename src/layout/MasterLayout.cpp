@@ -43,18 +43,7 @@ SMasterWorkspaceData* CHyprMasterLayout::getMasterWorkspaceData(const int& ws) {
     //create on the fly if it doesn't exist yet
     const auto PWORKSPACEDATA   = &m_lMasterWorkspacesData.emplace_back();
     PWORKSPACEDATA->workspaceID = ws;
-    static auto PORIENTATION    = CConfigValue<std::string>("master:orientation");
-
-    if (*PORIENTATION == "top")
-        PWORKSPACEDATA->orientation = ORIENTATION_TOP;
-    else if (*PORIENTATION == "right")
-        PWORKSPACEDATA->orientation = ORIENTATION_RIGHT;
-    else if (*PORIENTATION == "bottom")
-        PWORKSPACEDATA->orientation = ORIENTATION_BOTTOM;
-    else if (*PORIENTATION == "center")
-        PWORKSPACEDATA->orientation = ORIENTATION_CENTER;
-    else
-        PWORKSPACEDATA->orientation = ORIENTATION_LEFT;
+    PWORKSPACEDATA->orientation = ORIENTATION_UNSET;
 
     return PWORKSPACEDATA;
 }
@@ -739,7 +728,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     static auto  ALWAYSCENTER   = CConfigValue<Hyprlang::INT>("master:always_center_master");
     static auto  PSMARTRESIZING = CConfigValue<Hyprlang::INT>("master:smart_resizing");
 
-    eOrientation orientation = getDynamicOrientation(pWindow->m_pWorkspace);
+    eOrientation orientation = getDynamicOrientation(PWINDOW->m_pWorkspace);
     bool         centered    = orientation == ORIENTATION_CENTER && (*ALWAYSCENTER == 1);
     double       delta       = 0;
 
@@ -1384,11 +1373,12 @@ void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader& header, CVarLi
 
     g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
 
-    const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->workspaceID());
+    const auto         PWORKSPACEDATA     = getMasterWorkspaceData(PWINDOW->workspaceID());
+    const eOrientation currentOrientation = getDynamicOrientation(PWINDOW->m_pWorkspace);
 
-    int        nextOrPrev = 0;
+    int                nextOrPrev = 0;
     for (size_t i = 0; i < cycle.size(); ++i) {
-        if (PWORKSPACEDATA->orientation == cycle.at(i)) {
+        if (currentOrientation == cycle.at(i)) {
             nextOrPrev = i + direction;
             break;
         }
@@ -1426,29 +1416,54 @@ void CHyprMasterLayout::buildOrientationCycleVectorFromVars(std::vector<eOrienta
 }
 
 eOrientation CHyprMasterLayout::getDynamicOrientation(PHLWORKSPACE pWorkspace) {
+    static auto  PORIENTATION      = CConfigValue<std::string>("master:orientation");
+    eOrientation globalOrientation = ORIENTATION_LEFT;
+    if (*PORIENTATION == "top")
+        globalOrientation = ORIENTATION_TOP;
+    else if (*PORIENTATION == "right")
+        globalOrientation = ORIENTATION_RIGHT;
+    else if (*PORIENTATION == "bottom")
+        globalOrientation = ORIENTATION_BOTTOM;
+    else if (*PORIENTATION == "center")
+        globalOrientation = ORIENTATION_CENTER;
+    else
+        globalOrientation = ORIENTATION_LEFT;
+
     const auto  WORKSPACERULES = g_pConfigManager->getWorkspaceRulesFor(pWorkspace);
-    std::string orientationString;
+    std::string wsRuleOrientationString;
 
     for (auto& wsRule : WORKSPACERULES) {
         if (wsRule.layoutopts.contains("orientation"))
-            orientationString = wsRule.layoutopts.at("orientation");
+            wsRuleOrientationString = wsRule.layoutopts.at("orientation");
     }
 
-    eOrientation orientation;
-    if (orientationString.empty()) // no workspace rules for orientation, don't override
-        orientation = getMasterWorkspaceData(pWorkspace->m_iID)->orientation;
-    else if (orientationString == "top")
-        orientation = ORIENTATION_TOP;
-    else if (orientationString == "right")
-        orientation = ORIENTATION_RIGHT;
-    else if (orientationString == "bottom")
-        orientation = ORIENTATION_BOTTOM;
-    else if (orientationString == "center")
-        orientation = ORIENTATION_CENTER;
-    else
-        orientation = ORIENTATION_LEFT;
+    eOrientation wsRuleOrientation = ORIENTATION_UNSET;
+    // workspace rule overrides global if it exists
+    if (!wsRuleOrientationString.empty()) {
+        if (wsRuleOrientationString == "top")
+            wsRuleOrientation = ORIENTATION_TOP;
+        else if (wsRuleOrientationString == "right")
+            wsRuleOrientation = ORIENTATION_RIGHT;
+        else if (wsRuleOrientationString == "bottom")
+            wsRuleOrientation = ORIENTATION_BOTTOM;
+        else if (wsRuleOrientationString == "center")
+            wsRuleOrientation = ORIENTATION_CENTER;
+        else if (wsRuleOrientationString == "left")
+            wsRuleOrientation = ORIENTATION_LEFT;
+    }
 
-    return orientation;
+    eOrientation wsDataOrientation = getMasterWorkspaceData(pWorkspace->m_iID)->orientation;
+
+    eOrientation realOrientation;
+    // priority: global < workspace rule < users manual dispatching
+    if (wsDataOrientation != ORIENTATION_UNSET)
+        realOrientation = wsDataOrientation;
+    else if (wsRuleOrientation != ORIENTATION_UNSET)
+        realOrientation = wsRuleOrientation;
+    else
+        realOrientation = globalOrientation;
+
+    return realOrientation;
 }
 
 void CHyprMasterLayout::replaceWindowDataWith(CWindow* from, CWindow* to) {
