@@ -1613,12 +1613,7 @@ void CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
             Debug::log(ERR, "focusWorkspaceOnCurrentMonitor old monitor doesn't exist!");
             return;
         }
-        if (POLDMONITOR->activeWorkspaceID() == workspaceID) {
-            g_pCompositor->swapActiveWorkspaces(POLDMONITOR, PCURRMONITOR);
-            return;
-        } else {
-            g_pCompositor->moveWorkspaceToMonitor(pWorkspace, PCURRMONITOR, true);
-        }
+        g_pCompositor->moveWorkspaceToMonitor(pWorkspace, PCURRMONITOR, true);
     }
 
     changeworkspace(pWorkspace->getConfigName());
