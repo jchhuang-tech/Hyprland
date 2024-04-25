@@ -326,7 +326,6 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
     eOrientation orientation        = getDynamicOrientation(pWorkspace);
     bool         centerMasterWindow = false;
     static auto  ALWAYSCENTER       = CConfigValue<Hyprlang::INT>("master:always_center_master");
-    static auto  PSMARTRESIZING     = CConfigValue<Hyprlang::INT>("master:smart_resizing");
 
     const auto   MASTERS      = getMastersOnWorkspace(pWorkspace->m_iID);
     const auto   WINDOWS      = getNodesOnWorkspace(pWorkspace->m_iID);
@@ -348,16 +347,14 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
     float       masterAccumulatedSize = 0;
     float       slaveAccumulatedSize  = 0;
 
-    if (*PSMARTRESIZING) {
-        // check the total width and height so that later
-        // if larger/smaller than screen size them down/up
-        for (auto& nd : m_lMasterNodesData) {
-            if (nd.workspaceID == pWorkspace->m_iID) {
-                if (nd.isMaster)
-                    masterAccumulatedSize += totalSize / MASTERS * nd.percSize;
-                else
-                    slaveAccumulatedSize += totalSize / STACKWINDOWS * nd.percSize;
-            }
+    // check the total width and height so that later
+    // if larger/smaller than screen size them down/up
+    for (auto& nd : m_lMasterNodesData) {
+        if (nd.workspaceID == pWorkspace->m_iID) {
+            if (nd.isMaster)
+                masterAccumulatedSize += totalSize / MASTERS * nd.percSize;
+            else
+                slaveAccumulatedSize += totalSize / STACKWINDOWS * nd.percSize;
         }
     }
 
@@ -369,11 +366,9 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
         applyNodeDataToWindow(PMASTERNODE);
         return;
     } else if (orientation == ORIENTATION_TOP || orientation == ORIENTATION_BOTTOM) {
-        const float HEIGHT      = STACKWINDOWS != 0 ? WSSIZE.y * PMASTERNODE->percMaster : WSSIZE.y;
-        float       widthLeft   = WSSIZE.x;
-        int         mastersLeft = MASTERS;
-        float       nextX       = 0;
-        float       nextY       = 0;
+        const float HEIGHT = STACKWINDOWS != 0 ? WSSIZE.y * PMASTERNODE->percMaster : WSSIZE.y;
+        float       nextX  = 0;
+        float       nextY  = 0;
 
         if (orientation == ORIENTATION_BOTTOM)
             nextY = WSSIZE.y - HEIGHT;
@@ -382,29 +377,19 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
             if (nd.workspaceID != pWorkspace->m_iID || !nd.isMaster)
                 continue;
 
-            float WIDTH = mastersLeft > 1 ? widthLeft / mastersLeft * nd.percSize : widthLeft;
-            if (WIDTH > widthLeft * 0.9f && mastersLeft > 1)
-                WIDTH = widthLeft * 0.9f;
-
-            if (*PSMARTRESIZING) {
-                nd.percSize *= WSSIZE.x / masterAccumulatedSize;
-                WIDTH = masterAverageSize * nd.percSize;
-            }
+            nd.percSize *= WSSIZE.x / masterAccumulatedSize;
+            const float WIDTH = masterAverageSize * nd.percSize;
 
             nd.size     = Vector2D(WIDTH, HEIGHT);
             nd.position = WSPOS + Vector2D(nextX, nextY);
             applyNodeDataToWindow(&nd);
 
-            mastersLeft--;
-            widthLeft -= WIDTH;
             nextX += WIDTH;
         }
     } else { // orientation left, right or center
-        float WIDTH       = WSSIZE.x;
-        float heightLeft  = WSSIZE.y;
-        int   mastersLeft = MASTERS;
-        float nextX       = 0;
-        float nextY       = 0;
+        float WIDTH = WSSIZE.x;
+        float nextX = 0;
+        float nextY = 0;
 
         if (STACKWINDOWS > 0 || centerMasterWindow)
             WIDTH *= PMASTERNODE->percMaster;
@@ -419,21 +404,13 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
             if (nd.workspaceID != pWorkspace->m_iID || !nd.isMaster)
                 continue;
 
-            float HEIGHT = mastersLeft > 1 ? heightLeft / mastersLeft * nd.percSize : heightLeft;
-            if (HEIGHT > heightLeft * 0.9f && mastersLeft > 1)
-                HEIGHT = heightLeft * 0.9f;
-
-            if (*PSMARTRESIZING) {
-                nd.percSize *= WSSIZE.y / masterAccumulatedSize;
-                HEIGHT = masterAverageSize * nd.percSize;
-            }
+            nd.percSize *= WSSIZE.y / masterAccumulatedSize;
+            const float HEIGHT = masterAverageSize * nd.percSize;
 
             nd.size     = Vector2D(WIDTH, HEIGHT);
             nd.position = WSPOS + Vector2D(nextX, nextY);
             applyNodeDataToWindow(&nd);
 
-            mastersLeft--;
-            heightLeft -= HEIGHT;
             nextY += HEIGHT;
         }
     }
@@ -442,12 +419,10 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
         return;
 
     // compute placement of slave window(s)
-    int slavesLeft = STACKWINDOWS;
     if (orientation == ORIENTATION_TOP || orientation == ORIENTATION_BOTTOM) {
-        const float HEIGHT    = WSSIZE.y - PMASTERNODE->size.y;
-        float       widthLeft = WSSIZE.x;
-        float       nextX     = 0;
-        float       nextY     = 0;
+        const float HEIGHT = WSSIZE.y - PMASTERNODE->size.y;
+        float       nextX  = 0;
+        float       nextY  = 0;
 
         if (orientation == ORIENTATION_TOP)
             nextY = PMASTERNODE->size.y;
@@ -456,28 +431,19 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
             if (nd.workspaceID != pWorkspace->m_iID || nd.isMaster)
                 continue;
 
-            float WIDTH = slavesLeft > 1 ? widthLeft / slavesLeft * nd.percSize : widthLeft;
-            if (WIDTH > widthLeft * 0.9f && slavesLeft > 1)
-                WIDTH = widthLeft * 0.9f;
-
-            if (*PSMARTRESIZING) {
-                nd.percSize *= WSSIZE.x / slaveAccumulatedSize;
-                WIDTH = slaveAverageSize * nd.percSize;
-            }
+            nd.percSize *= WSSIZE.x / slaveAccumulatedSize;
+            const float WIDTH = slaveAverageSize * nd.percSize;
 
             nd.size     = Vector2D(WIDTH, HEIGHT);
             nd.position = WSPOS + Vector2D(nextX, nextY);
             applyNodeDataToWindow(&nd);
 
-            slavesLeft--;
-            widthLeft -= WIDTH;
             nextX += WIDTH;
         }
     } else if (orientation == ORIENTATION_LEFT || orientation == ORIENTATION_RIGHT) {
-        const float WIDTH      = WSSIZE.x - PMASTERNODE->size.x;
-        float       heightLeft = WSSIZE.y;
-        float       nextY      = 0;
-        float       nextX      = 0;
+        const float WIDTH = WSSIZE.x - PMASTERNODE->size.x;
+        float       nextY = 0;
+        float       nextX = 0;
 
         if (orientation == ORIENTATION_LEFT)
             nextX = PMASTERNODE->size.x;
@@ -486,99 +452,71 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
             if (nd.workspaceID != pWorkspace->m_iID || nd.isMaster)
                 continue;
 
-            float HEIGHT = slavesLeft > 1 ? heightLeft / slavesLeft * nd.percSize : heightLeft;
-            if (HEIGHT > heightLeft * 0.9f && slavesLeft > 1)
-                HEIGHT = heightLeft * 0.9f;
-
-            if (*PSMARTRESIZING) {
-                nd.percSize *= WSSIZE.y / slaveAccumulatedSize;
-                HEIGHT = slaveAverageSize * nd.percSize;
-            }
+            nd.percSize *= WSSIZE.y / slaveAccumulatedSize;
+            const float HEIGHT = slaveAverageSize * nd.percSize;
 
             nd.size     = Vector2D(WIDTH, HEIGHT);
             nd.position = WSPOS + Vector2D(nextX, nextY);
             applyNodeDataToWindow(&nd);
 
-            slavesLeft--;
-            heightLeft -= HEIGHT;
             nextY += HEIGHT;
         }
     } else { // slaves for centered master window(s)
-        const float WIDTH       = (WSSIZE.x - PMASTERNODE->size.x) / 2.0;
-        float       heightLeft  = 0;
-        float       heightLeftL = WSSIZE.y;
-        float       heightLeftR = WSSIZE.y;
-        float       nextX       = 0;
-        float       nextY       = 0;
-        float       nextYL      = 0;
-        float       nextYR      = 0;
-        bool        onRight     = true;
+        const float WIDTH   = (WSSIZE.x - PMASTERNODE->size.x) / 2.0;
+        float       nextX   = 0;
+        float       nextY   = 0;
+        float       nextYL  = 0;
+        float       nextYR  = 0;
+        bool        onRight = true;
 
-        int         slavesLeftR = 1 + (slavesLeft - 1) / 2;
-        int         slavesLeftL = slavesLeft - slavesLeftR;
-
-        const float slaveAverageHeightL     = WSSIZE.y / slavesLeftL;
-        const float slaveAverageHeightR     = WSSIZE.y / slavesLeftR;
+        const int   slaveCountR             = 1 + (STACKWINDOWS - 1) / 2;
+        const int   slaveCountL             = STACKWINDOWS - slaveCountR;
+        const float slaveAverageHeightL     = WSSIZE.y / slaveCountL;
+        const float slaveAverageHeightR     = WSSIZE.y / slaveCountR;
         float       slaveAccumulatedHeightL = 0;
         float       slaveAccumulatedHeightR = 0;
-        if (*PSMARTRESIZING) {
-            for (auto& nd : m_lMasterNodesData) {
-                if (nd.workspaceID != pWorkspace->m_iID || nd.isMaster)
-                    continue;
+        for (auto& nd : m_lMasterNodesData) {
+            if (nd.workspaceID != pWorkspace->m_iID || nd.isMaster)
+                continue;
 
-                if (onRight) {
-                    slaveAccumulatedHeightR += slaveAverageHeightR * nd.percSize;
-                } else {
-                    slaveAccumulatedHeightL += slaveAverageHeightL * nd.percSize;
-                }
-                onRight = !onRight;
-            }
-            onRight = true;
+            if (onRight)
+                slaveAccumulatedHeightR += slaveAverageHeightR * nd.percSize;
+            else
+                slaveAccumulatedHeightL += slaveAverageHeightL * nd.percSize;
+
+            onRight = !onRight;
         }
+        onRight = true;
 
         for (auto& nd : m_lMasterNodesData) {
             if (nd.workspaceID != pWorkspace->m_iID || nd.isMaster)
                 continue;
 
             if (onRight) {
-                nextX      = WIDTH + PMASTERNODE->size.x;
-                nextY      = nextYR;
-                heightLeft = heightLeftR;
-                slavesLeft = slavesLeftR;
+                nextX = WIDTH + PMASTERNODE->size.x;
+                nextY = nextYR;
             } else {
-                nextX      = 0;
-                nextY      = nextYL;
-                heightLeft = heightLeftL;
-                slavesLeft = slavesLeftL;
+                nextX = 0;
+                nextY = nextYL;
             }
 
-            float HEIGHT = slavesLeft > 1 ? heightLeft / slavesLeft * nd.percSize : heightLeft;
-            if (HEIGHT > heightLeft * 0.9f && slavesLeft > 1)
-                HEIGHT = heightLeft * 0.9f;
-
-            if (*PSMARTRESIZING) {
-                if (onRight) {
-                    nd.percSize *= WSSIZE.y / slaveAccumulatedHeightR;
-                    HEIGHT = slaveAverageHeightR * nd.percSize;
-                } else {
-                    nd.percSize *= WSSIZE.y / slaveAccumulatedHeightL;
-                    HEIGHT = slaveAverageHeightL * nd.percSize;
-                }
+            float HEIGHT = 0;
+            if (onRight) {
+                nd.percSize *= WSSIZE.y / slaveAccumulatedHeightR;
+                HEIGHT = slaveAverageHeightR * nd.percSize;
+            } else {
+                nd.percSize *= WSSIZE.y / slaveAccumulatedHeightL;
+                HEIGHT = slaveAverageHeightL * nd.percSize;
             }
 
             nd.size     = Vector2D(WIDTH, HEIGHT);
             nd.position = WSPOS + Vector2D(nextX, nextY);
             applyNodeDataToWindow(&nd);
 
-            if (onRight) {
-                heightLeftR -= HEIGHT;
+            if (onRight)
                 nextYR += HEIGHT;
-                slavesLeftR--;
-            } else {
-                heightLeftL -= HEIGHT;
+            else
                 nextYL += HEIGHT;
-                slavesLeftL--;
-            }
 
             onRight = !onRight;
         }
@@ -784,38 +722,42 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     const auto SIZE = isStackVertical ? WSSIZE.y / nodesInSameColumn : WSSIZE.x / nodesInSameColumn;
 
     if (RESIZEDELTA != 0 && nodesInSameColumn > 1) {
-        if (!*PSMARTRESIZING) {
-            PNODE->percSize = std::clamp(PNODE->percSize + RESIZEDELTA / SIZE, 0.05, 1.95);
+        const auto  NODEIT    = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
+        const auto  REVNODEIT = std::find(m_lMasterNodesData.rbegin(), m_lMasterNodesData.rend(), *PNODE);
+
+        const float totalSize             = isStackVertical ? WSSIZE.y : WSSIZE.x;
+        const float minSize               = totalSize / nodesInSameColumn * 0.2;
+        bool        shouldResizePrevNodes = false;
+        if (*PSMARTRESIZING) {
+            if (isStackVertical)
+                shouldResizePrevNodes = (TOP || DISPLAYBOTTOM) && !DISPLAYTOP;
+            else
+                shouldResizePrevNodes = (LEFT || DISPLAYRIGHT) && !DISPLAYLEFT;
+        }
+
+        int   nodesLeft = 0;
+        float sizeLeft  = 0;
+        int   nodeCount = 0;
+        // check the sizes of all the nodes to be resized for later calculation
+        auto checkNodesLeft = [&sizeLeft, &nodesLeft, orientation, isStackVertical, &nodeCount, PNODE](auto it) {
+            if (it.isMaster != PNODE->isMaster || it.workspaceID != PNODE->workspaceID)
+                return;
+            nodeCount++;
+            if (!it.isMaster && orientation == ORIENTATION_CENTER && nodeCount % 2 == 1)
+                return;
+            sizeLeft += isStackVertical ? it.size.y : it.size.x;
+            nodesLeft++;
+        };
+        float resizeDiff;
+        if (shouldResizePrevNodes) {
+            std::for_each(std::next(REVNODEIT), m_lMasterNodesData.rend(), checkNodesLeft);
+            resizeDiff = -RESIZEDELTA;
         } else {
-            const auto  NODEIT    = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
-            const auto  REVNODEIT = std::find(m_lMasterNodesData.rbegin(), m_lMasterNodesData.rend(), *PNODE);
+            std::for_each(std::next(NODEIT), m_lMasterNodesData.end(), checkNodesLeft);
+            resizeDiff = RESIZEDELTA;
+        }
 
-            const float totalSize       = isStackVertical ? WSSIZE.y : WSSIZE.x;
-            const float minSize         = totalSize / nodesInSameColumn * 0.2;
-            const bool  resizePrevNodes = isStackVertical ? (TOP || DISPLAYBOTTOM) && !DISPLAYTOP : (LEFT || DISPLAYRIGHT) && !DISPLAYLEFT;
-
-            int         nodesLeft = 0;
-            float       sizeLeft  = 0;
-            int         nodeCount = 0;
-            // check the sizes of all the nodes to be resized for later calculation
-            auto checkNodesLeft = [&sizeLeft, &nodesLeft, orientation, isStackVertical, &nodeCount, PNODE](auto it) {
-                if (it.isMaster != PNODE->isMaster || it.workspaceID != PNODE->workspaceID)
-                    return;
-                nodeCount++;
-                if (!it.isMaster && orientation == ORIENTATION_CENTER && nodeCount % 2 == 1)
-                    return;
-                sizeLeft += isStackVertical ? it.size.y : it.size.x;
-                nodesLeft++;
-            };
-            float resizeDiff;
-            if (resizePrevNodes) {
-                std::for_each(std::next(REVNODEIT), m_lMasterNodesData.rend(), checkNodesLeft);
-                resizeDiff = -RESIZEDELTA;
-            } else {
-                std::for_each(std::next(NODEIT), m_lMasterNodesData.end(), checkNodesLeft);
-                resizeDiff = RESIZEDELTA;
-            }
-
+        if (nodesLeft > 0) {
             const float nodeSize        = isStackVertical ? PNODE->size.y : PNODE->size.x;
             const float maxSizeIncrease = sizeLeft - nodesLeft * minSize;
             const float maxSizeDecrease = minSize - nodeSize;
@@ -837,11 +779,10 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
                 const float resizeDeltaForEach = maxSizeIncrease != 0 ? resizeDiff * (size - minSize) / maxSizeIncrease : resizeDiff / nodesLeft;
                 it.percSize -= resizeDeltaForEach / SIZE;
             };
-            if (resizePrevNodes) {
+            if (shouldResizePrevNodes)
                 std::for_each(std::next(REVNODEIT), m_lMasterNodesData.rend(), resizeNodesLeft);
-            } else {
+            else
                 std::for_each(std::next(NODEIT), m_lMasterNodesData.end(), resizeNodesLeft);
-            }
         }
     }
 
