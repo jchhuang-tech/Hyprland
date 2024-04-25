@@ -684,8 +684,6 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     if (getNodesOnWorkspace(PWINDOW->workspaceID()) == 1 && !centered)
         return;
 
-    m_bForceWarps = true;
-
     switch (orientation) {
         case ORIENTATION_LEFT: delta = pixResize.x / PMONITOR->vecSize.x; break;
         case ORIENTATION_RIGHT: delta = -pixResize.x / PMONITOR->vecSize.x; break;
@@ -710,20 +708,17 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     }
 
     // check the up/down resize
-    const bool isStackVertical = orientation == ORIENTATION_LEFT || orientation == ORIENTATION_RIGHT || orientation == ORIENTATION_CENTER;
-
-    const auto RESIZEDELTA = isStackVertical ? pixResize.y : pixResize.x;
-    const auto WSSIZE      = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
-
+    const bool isStackVertical   = orientation == ORIENTATION_LEFT || orientation == ORIENTATION_RIGHT || orientation == ORIENTATION_CENTER;
+    const auto RESIZEDELTA       = isStackVertical ? pixResize.y : pixResize.x;
     auto       nodesInSameColumn = PNODE->isMaster ? MASTERS : STACKWINDOWS;
     if (orientation == ORIENTATION_CENTER && !PNODE->isMaster)
         nodesInSameColumn = DISPLAYRIGHT ? (nodesInSameColumn + 1) / 2 : nodesInSameColumn / 2;
 
-    const auto SIZE = isStackVertical ? WSSIZE.y / nodesInSameColumn : WSSIZE.x / nodesInSameColumn;
-
     if (RESIZEDELTA != 0 && nodesInSameColumn > 1) {
-        const auto  NODEIT    = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
-        const auto  REVNODEIT = std::find(m_lMasterNodesData.rbegin(), m_lMasterNodesData.rend(), *PNODE);
+        const auto  WSSIZE      = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
+        const auto  AVGNODESIZE = isStackVertical ? WSSIZE.y / nodesInSameColumn : WSSIZE.x / nodesInSameColumn;
+        const auto  NODEIT      = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
+        const auto  REVNODEIT   = std::find(m_lMasterNodesData.rbegin(), m_lMasterNodesData.rend(), *PNODE);
 
         const float totalSize             = isStackVertical ? WSSIZE.y : WSSIZE.x;
         const float minSize               = totalSize / nodesInSameColumn * 0.2;
@@ -764,11 +759,11 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
 
             // leaves enough room for the other nodes
             resizeDiff = std::clamp(resizeDiff, maxSizeDecrease, maxSizeIncrease);
-            PNODE->percSize += resizeDiff / SIZE;
+            PNODE->percSize += resizeDiff / AVGNODESIZE;
 
             // resize the other nodes
             nodeCount            = 0;
-            auto resizeNodesLeft = [maxSizeIncrease, resizeDiff, minSize, orientation, isStackVertical, SIZE, &nodeCount, nodesLeft, PNODE](auto& it) {
+            auto resizeNodesLeft = [maxSizeIncrease, resizeDiff, minSize, orientation, isStackVertical, AVGNODESIZE, &nodeCount, nodesLeft, PNODE](auto& it) {
                 if (it.isMaster != PNODE->isMaster || it.workspaceID != PNODE->workspaceID)
                     return;
                 nodeCount++;
@@ -777,7 +772,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
                     return;
                 const float size               = isStackVertical ? it.size.y : it.size.x;
                 const float resizeDeltaForEach = maxSizeIncrease != 0 ? resizeDiff * (size - minSize) / maxSizeIncrease : resizeDiff / nodesLeft;
-                it.percSize -= resizeDeltaForEach / SIZE;
+                it.percSize -= resizeDeltaForEach / AVGNODESIZE;
             };
             if (shouldResizePrevNodes)
                 std::for_each(std::next(REVNODEIT), m_lMasterNodesData.rend(), resizeNodesLeft);
@@ -786,8 +781,8 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
         }
     }
 
+    m_bForceWarps = true;
     recalculateMonitor(PMONITOR->ID);
-
     m_bForceWarps = false;
 }
 
