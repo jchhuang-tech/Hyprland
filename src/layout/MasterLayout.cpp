@@ -133,7 +133,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
         for (auto it = m_lMasterNodesData.begin(); it != m_lMasterNodesData.end(); ++it) {
             if (it->workspaceID != pWindow->workspaceID() || it->isMaster)
                 continue;
-            if (g_pCompositor->m_pLastWindow == it->pWindow) {
+            if (g_pCompositor->m_pLastWindow.lock() == it->pWindow.lock()) {
                 if (*PNEWATTACH == 1) { // if attach below
                     ++it;
                 }
