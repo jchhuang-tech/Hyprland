@@ -6,6 +6,7 @@
 #include "../devices/ITouch.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/PresentationTime.hpp"
+#include <ranges>
 
 int ratHandler(void* data) {
     g_pHyprRenderer->renderMonitor((CMonitor*)data);
@@ -148,6 +149,15 @@ void CMonitor::onConnect(bool noRule) {
 
     if (std::find_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& other) { return other.get() == this; }) == g_pCompositor->m_vMonitors.end())
         g_pCompositor->m_vMonitors.push_back(*thisWrapper);
+
+    // for all monitor rules, put these monitors in the beginning of the vector
+    const auto monitorRules = g_pConfigManager->getAllMonitorRules();
+    for (auto& rule : monitorRules | std::views::reverse) {
+        if (matchesStaticSelector(rule.name) && !rule.disabled) {
+            if (std::erase(g_pCompositor->m_vMonitors, *thisWrapper) > 0)
+                g_pCompositor->m_vMonitors.insert(g_pCompositor->m_vMonitors.begin(), *thisWrapper);
+        }
+    }
 
     m_bEnabled = true;
 

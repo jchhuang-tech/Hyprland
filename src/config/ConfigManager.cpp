@@ -1439,6 +1439,10 @@ const std::deque<SWorkspaceRule>& CConfigManager::getAllWorkspaceRules() {
     return m_dWorkspaceRules;
 }
 
+const std::deque<SMonitorRule>& CConfigManager::getAllMonitorRules() {
+    return m_dMonitorRules;
+}
+
 void CConfigManager::addExecRule(const SExecRequestedRule& rule) {
     execRequestedRules.push_back(rule);
 }
