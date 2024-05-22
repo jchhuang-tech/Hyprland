@@ -153,10 +153,11 @@ void CMonitor::onConnect(bool noRule) {
     // for all monitor rules, put these monitors in the beginning of the vector
     const auto monitorRules = g_pConfigManager->getAllMonitorRules();
     for (auto& rule : monitorRules | std::views::reverse) {
-        if (matchesStaticSelector(rule.name) && !rule.disabled) {
-            if (std::erase(g_pCompositor->m_vMonitors, *thisWrapper) > 0)
-                g_pCompositor->m_vMonitors.insert(g_pCompositor->m_vMonitors.begin(), *thisWrapper);
-        }
+        // for each rule, find the monitor in vector and move to front
+        auto it = std::find_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(),
+                               [&](const auto& m) { return m->matchesStaticSelector(rule.name) && !rule.disabled; });
+        if (it != g_pCompositor->m_vMonitors.end())
+            std::rotate(g_pCompositor->m_vMonitors.begin(), it, it + 1);
     }
 
     m_bEnabled = true;
