@@ -111,6 +111,7 @@ class CConfigManager {
     CMonitor*                                                       getBoundMonitorForWS(const std::string&);
     std::string                                                     getBoundMonitorStringForWS(const std::string&);
     const std::deque<SWorkspaceRule>&                               getAllWorkspaceRules();
+    const std::deque<SMonitorRule>&                                 getAllMonitorRules();
 
     std::vector<SWindowRule>                                        getMatchingRules(PHLWINDOW, bool dynamic = true, bool shadowExec = false);
     std::vector<SLayerRule>                                         getMatchingRules(PHLLS);
